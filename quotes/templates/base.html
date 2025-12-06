@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Quotes</title>
+    <style>
+        /* Page Transition */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-color);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading-spinner.active {
+            opacity: 1;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap');
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css');
+        
+        /* Musical Decorations */
+        .music-note {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 2.5rem;
+            animation: bounce 2s infinite, colorChange 5s infinite;
+            z-index: 1000;
+            text-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        .floating-notes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+            opacity: 0.8;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.03) 100%);
+        }
+        
+        /* Scroll Progress Indicator */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #9b59b6);
+            z-index: 1000;
+            transition: width 0.1s ease-out;
+        }
+        
+        /* Scroll-triggered Notes */
+        .scroll-notes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 900;
+            overflow: hidden;
+        }
+        
+        .scroll-note {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+        }
+        
+        /* Musical Staff for Scroll Effect - Simplified */
+        .musical-staff {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px; /* Reduced height */
+            background: linear-gradient(to bottom, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 20%,
+                rgba(0,0,0,0.02) 100%);
+            z-index: 100; /* Lower z-index to stay behind pagination */
+            pointer-events: none;
+            transform: translateY(100%);
+            transition: transform 0.5s ease-out;
+        }
+        
+        /* Ensure pagination is above the staff */
+        .pagination {
+            position: relative;
+            z-index: 200; /* Higher than staff */
+            background: transparent; /* Match site background */
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+        
+        .floating-note {
+            position: absolute;
+            font-size: 1.2rem;
+            opacity: 0.4;
+            animation: floatNote 20s linear infinite;
+            text-shadow: 0 0 5px rgba(0,0,0,0.1);
+            transform-origin: center;
+            will-change: transform, opacity;
+        }
+        
+        @keyframes floatNote {
+            0% { 
+                transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.8);
+                opacity: 0;
+            }
+            10% { 
+                opacity: 0.4;
+                transform: translateY(90vh) translateX(10px) rotate(5deg) scale(1);
+            }
+            90% { 
+                opacity: 0.4;
+            }
+            100% { 
+                transform: translateY(-100px) translateX(50px) rotate(15deg) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes colorChange {
+            0% { color: #3498db; }
+            25% { color: #e74c3c; }
+            50% { color: #9b59b6; }
+            75% { color: #e67e22; }
+            100% { color: #3498db; }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --text-color: #2c3e50;
+            --light-gray: #f8f9fa;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(-45deg, #f5f7fa, #e4e8f0, #d8e1e8, #e0e9f2);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 50c-13.8 0-25 11.2-25 25s11.2 25 25 25 25-11.2 25-25-11.2-25-25-25zm0 40c-8.3 0-15-6.7-15-15s6.7-15 15-15 15 6.7 15 15-6.7 15-15 15z' fill='%23e0e6ed' fill-opacity='0.1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+        }
+        
+        .header-actions {
+            margin-top: 1.5rem;
+        }
+        .quote {
+            background: white;
+            border-left: 6px solid var(--secondary-color);
+            margin: 1.5rem auto;
+            padding: 2.5rem 3.5rem 2.5rem 4rem;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            transform: translateY(0);
+            width: 95%;
+            max-width: 1200px;
+            will-change: transform, box-shadow;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        .quote:hover {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .quote::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .quote:hover::after {
+            opacity: 1;
+        }
+        .quote-text {
+            font-size: 1.30rem;
+            font-style: italic;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: #2c3e50;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+        
+        .quote-author {
+            font-weight: 500;
+            color: var(--secondary-color);
+            text-align: right;
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+            position: relative;
+            padding-right: 2rem;
+            font-family: 'Roboto', sans-serif;
+            font-style: italic;
+            letter-spacing: 0.3px;
+            opacity: 0.9;
+        }
+        
+        .quote-author::before {
+            content: '— ';
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin: 3rem 0 2rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .pagination a, 
+        .pagination .current {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #2c3e50;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .pagination a:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .pagination .current {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+            opacity: 1;
+        }
+        
+        .pagination .disabled {
+            color: #95a5a6;
+            pointer-events: none;
+        }
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.8rem 1.8rem;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+            background-color: #2980b9;
+        }
+        
+        .btn .icon {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+        
+        .btn-random {
+            background: linear-gradient(45deg, var(--secondary-color), #9b59b6);
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .btn-random:hover {
+            background: linear-gradient(45deg, #2980b9, #8e44ad);
+        }
+        
+        /* Header */
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.8rem;
+            margin: 0;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--secondary-color);
+            border-radius: 3px;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .quote {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        /* Decorative Elements */
+        .decoration-left,
+        .decoration-right {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: -1;
+            opacity: 0.1;
+        }
+        
+        .decoration-left {
+            left: 1%;
+            width: 3rem;
+        }
+        
+        .decoration-right {
+            right: 1%;
+            width: 3rem;
+            flex-direction: column-reverse;
+        }
+        /* Decorative vertical lines */
+        .decoration-line {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, 
+                transparent, 
+                rgba(0, 0, 0, 0.1), 
+                transparent);
+            z-index: 0;
+        }
+        
+        .decoration-left {
+            left: 5%;
+        }
+        
+        .decoration-right {
+            right: 5%;
+        }
+        
+        /* Page Decorative Elements */
+        .page-decoration {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 100px;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        /* Staff Lines */
+        .staff-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 19px,
+                rgba(0,0,0,0.03) 19px,
+                rgba(0,0,0,0.03) 20px
+            );
+            opacity: 0.7;
+        }
+        
+        /* Floating Notes */
+        .floating-note {
+            position: absolute;
+            font-size: 1.2rem;
+            opacity: 0;
+            animation: floatNote 15s linear infinite;
+            z-index: 1;
+        }
+        
+        @keyframes floatNote {
+            0% { 
+                transform: translateY(100vh) translateX(0) rotate(0deg) scale(0.8);
+                opacity: 0;
+            }
+            10% { 
+                opacity: 0.4;
+                transform: translateY(90vh) translateX(10px) rotate(5deg) scale(1);
+            }
+            90% { 
+                opacity: 0.4;
+            }
+            100% { 
+                transform: translateY(-100px) translateX(50px) rotate(15deg) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        /* Music Note Pattern */
+        .note-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0c16.569 0 30 13.431 30 30 0 16.569-13.431 30-30 30C13.431 60 0 46.569 0 30 0 13.431 13.431 0 30 0zm0 12c-9.925 0-18 8.075-18 18s8.075 18 18 18 18-8.075 18-18-8.075-18-18-18z' fill='%23000000' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        
+        /* Gradient Overlay - Adjusted to not cover footer */
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 100px); /* Stop before the bottom */
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Ensure page content has enough bottom padding */
+        .main-content {
+            padding-bottom: 60px;
+        }
+        
+        /* Quote Hover Effects */
+        .quote:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .quote:hover::before {
+            opacity: 0.8;
+        }
+        
+        /* Custom Bullet Points */
+        .quote::before {
+            content: '♫';
+            position: absolute;
+            left: -25px;
+            top: 10px;
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .quote:hover::before {
+            opacity: 1;
+            transform: rotate(10deg);
+        }
+        
+        .decoration-left {
+            left: 0;
+            background: linear-gradient(90deg, rgba(248,249,250,0.8) 0%, rgba(248,249,250,0) 100%);
+            border-right: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .decoration-right {
+            right: 0;
+            background: linear-gradient(270deg, rgba(248,249,250,0.8) 0%, rgba(248,249,250,0) 100%);
+            border-left: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .decoration-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20h40v20H0V20zm20-20v20h20V0H20z' fill='%23000000' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        
+        /* Cursor Note Trail Effect */
+        .note-trail {
+            position: fixed;
+            pointer-events: none;
+            font-size: 1.5rem;
+            z-index: 9999;
+            animation: floatUp 1s ease-out forwards;
+            opacity: 0.9;
+            text-shadow: 0 0 5px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%); /* Center the note on cursor */
+        }
+        
+        @keyframes floatUp {
+            0% {
+                transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -150%) scale(1.2) rotate(20deg);
+                opacity: 0;
+            }
+        }
+        
+        .music-note:nth-child(1) { 
+            animation: subtlePulse 3s ease-in-out infinite;
+            animation-delay: 0s; 
+        }
+        .music-note:nth-child(2) { 
+            animation: subtlePulse 4s ease-in-out infinite;
+            animation-delay: 0.5s; 
+        }
+        .music-note:nth-child(3) { 
+            animation: subtlePulse 3.5s ease-in-out infinite;
+            animation-delay: 1s; 
+        }
+        
+        @keyframes subtlePulse {
+            0%, 100% { 
+                opacity: 0.1;
+                transform: translateY(0) scale(1);
+            }
+            50% { 
+                opacity: 0.2;
+                transform: translateY(-5px) scale(1.05);
+            }
+        }
+        
+        .music-note:nth-child(1) { animation: subtlePulse 3s ease-in-out infinite; }
+        .music-note:nth-child(2) { animation: subtlePulse 4s ease-in-out infinite 0.5s; }
+        .music-note:nth-child(3) { animation: subtlePulse 3.5s ease-in-out infinite 1s; }
+        
+        .main-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .page-decoration {
+                width: 60px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-decoration {
+                width: 40px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .quote {
+                padding: 2rem 2rem 2rem 2.5rem;
+                margin: 1.5rem auto;
+                width: 95%;
+            }
+            
+            .quote-text {
+                font-size: 1.1rem;
+            }
+            
+            .quote-author {
+                font-size: 1rem;
+                margin-top: 1.2rem;
+            }
+        }
+    </style>
+</head>
+    <body>
+    <div class="music-note" id="mainNote">♫</div>
+    <div class="floating-notes" id="floatingNotes"></div>
+    <div class="scroll-notes" id="scrollNotes"></div>
+    <div class="scroll-progress" id="scrollProgress"></div>
+    <div class="musical-staff" id="musicalStaff"></div>
+    <div class="gradient-overlay"></div>
+    
+    <div class="page-decoration decoration-left">
+        <div class="staff-lines"></div>
+        <div class="note-pattern"></div>
+        <div class="floating-note" style="left: 30%; animation-delay: 0s;">♪</div>
+        <div class="floating-note" style="left: 60%; animation-delay: 3s;">♫</div>
+        <div class="floating-note" style="left: 20%; animation-delay: 6s;">♩</div>
+    </div>
+    
+    <div class="page-decoration decoration-right">
+        <div class="staff-lines"></div>
+        <div class="note-pattern"></div>
+        <div class="floating-note" style="right: 30%; animation-delay: 2s;">♬</div>
+        <div class="floating-note" style="right: 50%; animation-delay: 5s;">♭</div>
+        <div class="floating-note" style="right: 20%; animation-delay: 8s;">♮</div>
+    </div>
+    
+    <header>
+        <div class="container">
+            <h1>Music Quotes</h1>
+            <div class="header-actions">
+                <a href="{% url 'quotes:random_quote' %}" class="btn btn-random">
+                    <span class="icon">🎵</span> Random Quote
+                </a>
+            </div>
+        </div>
+    </header>
+    <main class="container">
+        <div class="decoration-line decoration-left"></div>
+        <div class="decoration-line decoration-right"></div>
+        <div class="main-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+    {% if user.is_staff %}
+    <div class="admin-link">
+        <!-- <a href="{% url 'admin:index' %}">Admin Panel</a> -->
+    </div>
+    {% endif %}
+    
+    <script>
+        // Scroll-based animations
+        function initScrollEffects() {
+            const scrollNotes = document.getElementById('scrollNotes');
+            const scrollProgress = document.getElementById('scrollProgress');
+            const musicalStaff = document.getElementById('musicalStaff');
+            const notes = ['♪', '♫', '♬', '♩', '♭', '♮', '♯'];
+            const colors = ['#3498db', '#e74c3c', '#9b59b6', '#e67e22', '#2ecc71', '#1abc9c', '#f1c40f'];
+            let lastScrollTop = 0;
+            
+            // Update scroll progress bar
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrolled = (scrollTop / scrollHeight) * 100;
+                scrollProgress.style.width = scrolled + '%';
+                
+                // Show/hide musical staff based on scroll direction
+                if (scrollTop > lastScrollTop && scrollTop > 300) {
+                    musicalStaff.style.transform = 'translateY(0)';
+                } else {
+                    musicalStaff.style.transform = 'translateY(100%)';
+                }
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+                
+                // Only trigger notes on actual scroll movement
+                if (Math.abs(scrollTop - lastScrollTop) > 5) {  // Minimum scroll distance
+                    if (Math.random() > 0.7) {  // Slightly less frequent
+                        const noteCount = 1 + Math.floor(Math.random() * 3); // 1-3 notes
+                        for (let i = 0; i < noteCount; i++) {
+                            setTimeout(() => createScrollNote(), i * 150); // Closer spacing
+                        }
+                    }
+                }
+            });
+            
+            function createScrollNote() {
+                const note = document.createElement('div');
+                note.className = 'scroll-note';
+                note.textContent = notes[Math.floor(Math.random() * notes.length)];
+                note.style.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Start from bottom of viewport with better positioning
+                const startX = 40 + (Math.random() * (window.innerWidth - 80)); // More margin
+                const startY = window.innerHeight + 50; // Start further down
+                
+                // End at top of viewport with slight horizontal movement
+                const endX = startX + (Math.random() * 100 - 50); // Less horizontal movement
+                const endY = -100; // Higher up
+                
+                // More consistent size and bolder appearance
+                const size = 1.8 + Math.random() * 1.5; // Larger notes
+                const rotation = (Math.random() * 30) - 15; // Less rotation
+                const opacity = 0.8 + (Math.random() * 0.2); // More opaque
+                
+                note.style.left = startX + 'px';
+                note.style.top = startY + 'px';
+                note.style.fontSize = size + 'rem';
+                note.style.opacity = '0'; // Start invisible
+                note.style.fontWeight = 'bold'; // Make notes bolder
+                note.style.textShadow = '0 2px 4px rgba(0,0,0,0.2)'; // Add shadow for depth
+                
+                scrollNotes.appendChild(note);
+                
+                // Force reflow before starting animation
+                void note.offsetWidth;
+                
+                // Animate note with smoother curve
+                note.style.transition = 'all 1.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                note.style.transform = `translateY(${endY - startY}px) translateX(${endX - startX}px) rotate(${rotation}deg)`;
+                note.style.opacity = opacity;
+                
+                // Fade out at the end
+                setTimeout(() => {
+                    note.style.opacity = '0';
+                }, 800);
+                
+                // Remove note after animation (slightly longer to account for fade)
+                setTimeout(() => {
+                    if (note.parentNode === scrollNotes) {
+                        scrollNotes.removeChild(note);
+                    }
+                }, 2500);
+            }
+            
+            // Initialize staff position
+            musicalStaff.style.transform = 'translateY(100%)';
+        }
+        
+        // Initialize scroll effects when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initScrollEffects();
+            
+            const notes = ['♪', '♫', '♬', '♩', '♭', '♮', '♯'];
+            const colors = ['#3498db', '#e74c3c', '#9b59b6', '#e67e22', '#2ecc71', '#1abc9c', '#f1c40f'];
+            
+            // Create initial floating notes
+            for (let i = 0; i < 15; i++) {
+                createFloatingNote();
+            }
+            
+            // Continue adding notes periodically
+            setInterval(createFloatingNote, 2000);
+            
+            // Make main note interactive
+            const mainNote = document.getElementById('mainNote');
+            mainNote.addEventListener('click', function() {
+                this.style.animation = 'none';
+                void this.offsetWidth; // Trigger reflow
+                this.style.animation = 'bounce 0.5s, colorChange 5s infinite';
+                createNoteBurst(this);
+            });
+            
+            function createNoteBurst(element) {
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const note = document.createElement('div');
+                    note.className = 'floating-note';
+                    note.textContent = notes[Math.floor(Math.random() * notes.length)];
+                    note.style.color = colors[Math.floor(Math.random() * colors.length)];
+                    note.style.left = '50%';
+                    note.style.top = '30px';
+                    note.style.animation = `burst 1s ease-out forwards ${i * 0.1}s`;
+                    note.style.setProperty('--x', Math.cos(angle) * 100 + 'px');
+                    note.style.setProperty('--y', Math.sin(angle) * 100 + 'px');
+                    document.getElementById('floatingNotes').appendChild(note);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        note.remove();
+                    }, 1000);
+                }
+            }
+            
+            function createFloatingNote() {
+                const note = document.createElement('div');
+                note.className = 'floating-note';
+                note.textContent = notes[Math.floor(Math.random() * notes.length)];
+                note.style.color = colors[Math.floor(Math.random() * colors.length)];
+                note.style.left = Math.random() * 100 + 'vw';
+                note.style.animationDuration = 10 + Math.random() * 20 + 's';
+                note.style.animationDelay = Math.random() * 5 + 's';
+                note.style.fontSize = (1 + Math.random() * 2) + 'rem';
+                document.getElementById('floatingNotes').appendChild(note);
+                
+                // Remove after animation completes
+                setTimeout(() => {
+                    note.remove();
+                }, 25000);
+            }
+        });
+        
+        // Burst animation for click effect
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes burst {
+                0% { transform: translate(0, 0) scale(1); opacity: 1; }
+                100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Create floating music notes on mouse hover
+        document.addEventListener('DOMContentLoaded', function() {
+            const quotes = document.querySelectorAll('.quote');
+            
+            quotes.forEach(quote => {
+                quote.addEventListener('mouseenter', function(e) {
+                    createHoverNote(e);
+                });
+                
+                // Add pulse animation on quote load
+                setTimeout(() => {
+                    quote.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        quote.classList.remove('animate__animated', 'animate__pulse');
+                    }, 1000);
+                }, 100);
+            });
+            
+            // Sheet music scroll effect
+            let lastScroll = 0;
+            window.addEventListener('scroll', function() {
+                const staffLines = document.querySelectorAll('.staff-lines');
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollSpeed = (scrollTop - lastScroll) * 0.5;
+                
+                staffLines.forEach(line => {
+                    line.style.backgroundPositionY = `-${scrollTop * 0.2}px`;
+                    line.style.transform = `translateY(${scrollSpeed}px)`;
+                });
+                
+                lastScroll = scrollTop;
+            });
+        });
+        
+        function createHoverNote(e) {
+            const note = document.createElement('div');
+            const notes = ['♪', '♫', '♬', '♩', '♭', '♮', '♯'];
+            const noteChar = notes[Math.floor(Math.random() * notes.length)];
+            
+            note.textContent = noteChar;
+            note.style.position = 'fixed';
+            note.style.left = `${e.pageX}px`;
+            note.style.top = `${e.pageY}px`;
+            note.style.fontSize = `${1 + Math.random() * 1.5}rem`;
+            note.style.opacity = '0.8';
+            note.style.pointerEvents = 'none';
+            note.style.zIndex = '9999';
+            note.style.transform = 'translate(-50%, -50%)';
+            note.style.transition = 'all 1s ease-out';
+            
+            document.body.appendChild(note);
+            
+            // Random direction for the note to float
+            const x = (Math.random() - 0.5) * 100;
+            const y = -100 - (Math.random() * 50);
+            
+            setTimeout(() => {
+                note.style.transform = `translate(calc(-50% + ${x}px), ${y}px)`;
+                note.style.opacity = '0';
+                
+                // Remove note after animation
+                setTimeout(() => {
+                    note.remove();
+                }, 1000);
+            }, 10);
+        }
+        
+        // Musical notes for the trail
+        const notes = ['♪', '♫', '♬', '♩', '♭', '♮', '♯', '♩', '♪', '♫'];
+        
+        document.addEventListener('mousemove', (e) => {
+            // Only create a note 20% of the time to prevent performance issues
+            if (Math.random() > 0.2) return;
+            
+            const note = document.createElement('div');
+            note.className = 'note-trail';
+            note.textContent = notes[Math.floor(Math.random() * notes.length)];
+            
+            // Random color for each note
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B786F'];
+            note.style.color = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Random size for variety
+            const size = 1 + Math.random() * 1.5;
+            note.style.fontSize = `${size}rem`;
+            
+            // Position at cursor, accounting for scroll
+            const x = e.clientX;
+            const y = e.clientY;
+            note.style.left = `${x}px`;
+            note.style.top = `${y}px`;
+            
+            // Add to body
+            document.body.appendChild(note);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                note.remove();
+            }, 1000);
+        });
+        
+        // Add subtle animation to decoration lines on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const lines = document.querySelectorAll('.decoration-line');
+            
+            function updateLines() {
+                const scrollPosition = window.scrollY;
+                const opacity = 0.3 + (Math.sin(scrollPosition * 0.01) * 0.1);
+                
+                lines.forEach(line => {
+                    line.style.opacity = opacity;
+                    line.style.transform = `scaleY(${1 + (Math.sin(scrollPosition * 0.005) * 0.1)})`;
+                });
+                
+                requestAnimationFrame(updateLines);
+            }
+            
+            updateLines();
+        });
+    </script>
+    <div class="page-transition"></div>
+    <div class="loading-spinner"></div>
+    
+    <script>
+        // Page transition handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const transition = document.querySelector('.page-transition');
+            const spinner = document.querySelector('.loading-spinner');
+            let isLoading = false;
+            
+            // Handle all link clicks
+            document.body.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                
+                if (link && link.href && link.href !== '#' && !link.href.includes('#')) {
+                    e.preventDefault();
+                    if (isLoading) return;
+                    
+                    isLoading = true;
+                    transition.classList.add('active');
+                    spinner.classList.add('active');
+                    
+                    // Delay to allow the transition to show
+                    setTimeout(() => {
+                        window.location.href = link.href;
+                    }, 300);
+                }
+            });
+            
+            // Show content with animation when page loads
+            window.addEventListener('load', function() {
+                document.body.style.opacity = '0';
+                document.body.style.transition = 'opacity 0.5s ease';
+                
+                // Force reflow to ensure the transition works
+                void document.body.offsetHeight;
+                
+                document.body.style.opacity = '1';
+                
+                // Animate in quotes with staggered delay
+                const quotes = document.querySelectorAll('.quote');
+                quotes.forEach((quote, index) => {
+                    quote.style.animationDelay = `${index * 0.1}s`;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

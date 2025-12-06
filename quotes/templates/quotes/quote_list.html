@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% if random_quote %}
+    <div class="random-quote-container">
+        <h2>Featured Quote</h2>
+        <div class="quote featured">
+            <div class="quote-text">"{{ random_quote.text }}"</div>
+            <div class="quote-author">{{ random_quote.author }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="quotes-list">
+        <h2 class="section-title">Latest Quotes</h2>
+        
+        {% for quote in page_obj %}
+            <div class="quote">
+                <div class="quote-text">"{{ quote.text }}"</div>
+                <div class="quote-author">{{ quote.author }}</div>
+                <!--<div class="quote-date">{{ quote.created_at|date:"F j, Y" }}</div>-->
+            </div>
+        {% empty %}
+            <div class="no-quotes">
+                <p>No quotes available yet. Check back soon!</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="{% if not page_obj.has_previous %}disabled{% endif %}">
+                    &laquo; First
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="{% if not page_obj.has_previous %}disabled{% endif %}">
+                    Previous
+                </a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="{% if not page_obj.has_next %}disabled{% endif %}">
+                    Next
+                </a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="{% if not page_obj.has_next %}disabled{% endif %}">
+                    Last &raquo;
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .random-quote-container {
+        margin-bottom: 3rem;
+        text-align: center;
+    }
+    
+    .random-quote-container h2 {
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        font-size: 1.8rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .random-quote-container h2::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+        border-radius: 3px;
+    }
+    
+    .quote.featured {
+        background: linear-gradient(135deg, #f6f9ff 0%, #f0f7ff 100%);
+        border-left: 5px solid var(--accent-color);
+        transform: scale(1.02);
+    }
+    
+    .quote.featured .quote-text {
+        font-size: 1.3rem;
+        line-height: 1.5;
+    }
+    
+    .quote.featured .quote-author {
+        font-size: 0.95rem;
+        margin-top: 0.8rem;
+        letter-spacing: 0.3px;
+        font-weight: 500;
+        font-style: italic;
+        font-family: 'Roboto', sans-serif;
+    }
+    
+    .quote.featured:hover {
+        transform: scale(1.02) translateY(-5px);
+    }
+    
+    .section-title {
+        color: var(--primary-color);
+        margin: 2rem 0 1.5rem;
+        font-size: 1.8rem;
+        position: relative;
+        padding-bottom: 0.5rem;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: var(--secondary-color);
+        border-radius: 3px;
+    }
+    
+    .quote-date {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        margin-top: 0.5rem;
+        text-align: right;
+        font-style: italic;
+    }
+    
+    .no-quotes {
+        text-align: center;
+        padding: 3rem 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    }
+    
+    .no-quotes p {
+        font-size: 1.2rem;
+        color: #7f8c8d;
+    }
+    
+    @media (max-width: 768px) {
+        .random-quote-container {
+            margin-bottom: 2rem;
+        }
+        
+        .random-quote-container h2,
+        .section-title {
+            font-size: 1.5rem;
+        }
+        
+        .quote.featured {
+            transform: none;
+        }
+        
+        .quote.featured:hover {
+            transform: translateY(-5px);
+        }
+    }
+</style>
+{% endblock %}
